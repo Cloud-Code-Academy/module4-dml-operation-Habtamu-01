@@ -270,35 +270,57 @@ public with sharing class DMLOperations {
         if(contactsToUpsert == null || contactsToUpsert.isEmpty()){
             return;
         }
-		// Loop through each Contact
-        for(Contact con : contactsToUpsert){
-             if(String.isBlank(con.LastName)){
-                continue;
-             }
-                Account acc = upsertAccount(con.LastName);
-                con.AccountId = acc.Id;
-        }
-		// Extract the Account Name from Contact's LastName
-            List<String> accountNames = new List<String>();
-            for(Contact con  : contactsToUpsert){
+        // Extract unique Account Names from Contact LastNames
+        Set<String> accountNames = new Set<String>();
+         for(Contact con : contactsToUpsert){
                 if(!String.isBlank(con.LastName)){
                     accountNames.add(con.LastName);
                 }
+         }
+         
+       // Upsert accounts once per unique name
+       Map<String,Account> accountMap = new Map<String,Account>();
+        for(String accName : accountNames){
+            Account acc = upsertAccount(accName);
+            accountMap.put(accName, acc);
+        }
+        // Link Contacts to their respective Accounts
+        for(Contact con : contactsToUpsert){
+            if(accountMap.containsKey(con.LastName)){
+                con.AccountId = accountMap.get(con.LastName).Id;
             }
-		// Get the account based on the name or create one if it doesn't exist
-            Map<String, Account> accountMap = new Map<String, Account>();
-            for(String accName : accountNames){
-                Account acc = upsertAccount(accName);
-                accountMap.put(accName, acc);
-            }
-		// Link the Contact to its Account using the Account Id
-            for(Contact con : contactsToUpsert){
-                if(accountMap.containsKey(con.LastName)){
-                    con.AccountId = accountMap.get(con.LastName).Id;
-                }
-            }
-		// Upsert the Contacts
+        }
+        //Upsert the contacts
         upsert contactsToUpsert;
+		// Loop through each Contact
+        // for(Contact con : contactsToUpsert){
+        //      if(String.isBlank(con.LastName)){
+        //         continue;
+        //      }
+        //         Account acc = upsertAccount(con.LastName);
+        //         con.AccountId = acc.Id;
+        // }
+		// // Extract the Account Name from Contact's LastName
+        //     List<String> accountNames = new List<String>();
+        //     for(Contact con  : contactsToUpsert){
+        //         if(!String.isBlank(con.LastName)){
+        //             accountNames.add(con.LastName);
+        //         }
+        //     }
+		// // Get the account based on the name or create one if it doesn't exist
+        //     Map<String, Account> accountMap = new Map<String, Account>();
+        //     for(String accName : accountNames){
+        //         Account acc = upsertAccount(accName);
+        //         accountMap.put(accName, acc);
+        //     }
+		// // Link the Contact to its Account using the Account Id
+        //     for(Contact con : contactsToUpsert){
+        //         if(accountMap.containsKey(con.LastName)){
+        //             con.AccountId = accountMap.get(con.LastName).Id;
+        //         }
+        //     }
+		// // Upsert the Contacts
+        // upsert contactsToUpsert;
 	}
 
     /**
